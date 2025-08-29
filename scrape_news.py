@@ -397,8 +397,15 @@ class TechNewsScraper:
 
     def save_to_json(self, articles_dict: Dict[str, List[Article]], filename: str = None, file_prefix: str = "tech_news"):
         """Save articles to JSON file"""
+        # Ensure json directory exists
+        os.makedirs('json', exist_ok=True)
+        
         if filename is None:
-            filename = f"{file_prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            filename = f"json/{file_prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        else:
+            # If filename is provided without path, add json folder
+            if not filename.startswith('json/'):
+                filename = f"json/{filename}"
         
         json_data = {}
         for site, articles in articles_dict.items():
@@ -422,8 +429,15 @@ class TechNewsScraper:
 
     def save_to_csv(self, articles_dict: Dict[str, List[Article]], filename: str = None, file_prefix: str = "tech_news"):
         """Save articles to CSV file"""
+        # Ensure csv directory exists
+        os.makedirs('csv', exist_ok=True)
+        
         if filename is None:
-            filename = f"{file_prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+            filename = f"csv/{file_prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        else:
+            # If filename is provided without path, add csv folder
+            if not filename.startswith('csv/'):
+                filename = f"csv/{filename}"
         
         all_articles = []
         for articles in articles_dict.values():
@@ -458,98 +472,113 @@ class TechNewsScraper:
             logger.error(f"Error loading template {template_file}: {e}")
             return self._get_default_html_template()
 
+
     def _get_default_html_template(self):
         """Return default HTML template as fallback"""
         return """<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{title}</title>
-    <style>
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #333; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }}
-        .container {{ max-width: 1200px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1); overflow: hidden; }}
-        .header {{ background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 40px; text-align: center; }}
-        .header.robotics-theme {{ background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%); }}
-        .header.linux-theme {{ background: linear-gradient(135deg, #f39c12 0%, #d68910 100%); }}
-        .header.security-theme {{ background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); }}
-        .header.combined-theme {{ background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); }}
-        .header h1 {{ font-size: 2.5rem; margin-bottom: 10px; font-weight: 700; }}
-        .header .subtitle {{ font-size: 1.2rem; opacity: 0.9; margin-bottom: 20px; }}
-        .stats {{ display: flex; justify-content: center; gap: 30px; margin-top: 20px; }}
-        .stat-item {{ text-align: center; }}
-        .stat-number {{ font-size: 2rem; font-weight: bold; display: block; }}
-        .stat-label {{ font-size: 0.9rem; opacity: 0.8; }}
-        .content {{ padding: 40px; }}
-        .site-section {{ margin-bottom: 50px; }}
-        .site-header {{ display: flex; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 3px solid #f0f0f0; }}
-        .site-icon {{ width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin-right: 15px; font-size: 1.2rem; }}
-        .robotics-prefix .site-icon {{ background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%); }}
-        .linux-prefix .site-icon {{ background: linear-gradient(135deg, #f39c12 0%, #d68910 100%); }}
-        .security-prefix .site-icon {{ background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); }}
-        .site-name {{ font-size: 1.8rem; font-weight: 600; color: #2c3e50; flex: 1; }}
-        .article-count {{ background: #e74c3c; color: white; padding: 8px 16px; border-radius: 20px; font-size: 0.9rem; font-weight: 600; }}
-        .articles-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 25px; }}
-        .article-card {{ background: #fff; border: 1px solid #e0e0e0; border-radius: 15px; padding: 25px; transition: all 0.3s ease; position: relative; overflow: hidden; }}
-        .article-card:hover {{ transform: translateY(-5px); box-shadow: 0 15px 40px rgba(0,0,0,0.1); border-color: #667eea; }}
-        .article-card::before {{ content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }}
-        .robotics-prefix .article-card::before {{ background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%); }}
-        .linux-prefix .article-card::before {{ background: linear-gradient(135deg, #f39c12 0%, #d68910 100%); }}
-        .security-prefix .article-card::before {{ background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); }}
-        .article-title {{ font-size: 1.3rem; font-weight: 600; color: #2c3e50; margin-bottom: 12px; line-height: 1.4; }}
-        .article-title a {{ color: inherit; text-decoration: none; transition: color 0.3s ease; }}
-        .article-title a:hover {{ color: #667eea; }}
-        .article-summary {{ color: #666; margin-bottom: 15px; font-size: 0.95rem; line-height: 1.5; }}
-        .article-meta {{ display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: #999; border-top: 1px solid #f0f0f0; padding-top: 15px; }}
-        .article-author {{ font-weight: 500; color: #667eea; }}
-        .article-date {{ opacity: 0.8; }}
-        .no-articles {{ text-align: center; color: #999; font-style: italic; padding: 40px; background: #f9f9f9; border-radius: 10px; }}
-        .footer {{ background: #f8f9fa; padding: 30px; text-align: center; color: #666; border-top: 1px solid #e0e0e0; }}
-        .footer p {{ margin-bottom: 10px; }}
-        .footer .timestamp {{ font-weight: 600; color: #333; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header {theme_class}">
-            <h1>{header_title}</h1>
-            <div class="subtitle">{subtitle}</div>
-            <div class="stats">
-                <div class="stat-item">
-                    <span class="stat-number">{total_articles}</span>
-                    <span class="stat-label">Total Articles</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-number">{total_sources}</span>
-                    <span class="stat-label">Sources</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-number">{generation_time}</span>
-                    <span class="stat-label">Generated</span>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{title}</title>
+        <style>
+            * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #333; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }}
+            .container {{ max-width: 1200px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.1); overflow: hidden; }}
+            .header {{ background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 40px; text-align: center; }}
+            .header.robotics-theme {{ background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%); }}
+            .header.linux-theme {{ background: linear-gradient(135deg, #f39c12 0%, #d68910 100%); }}
+            .header.security-theme {{ background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); }}
+            .header.combined-theme {{ background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); }}
+            .header h1 {{ font-size: 2.5rem; margin-bottom: 10px; font-weight: 700; }}
+            .header .subtitle {{ font-size: 1.2rem; opacity: 0.9; margin-bottom: 20px; }}
+            .stats {{ display: flex; justify-content: center; gap: 30px; margin-top: 20px; }}
+            .stat-item {{ text-align: center; }}
+            .stat-number {{ font-size: 2rem; font-weight: bold; display: block; }}
+            .stat-label {{ font-size: 0.9rem; opacity: 0.8; }}
+            .content {{ padding: 40px; }}
+            .site-section {{ margin-bottom: 50px; }}
+            .site-header {{ display: flex; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 3px solid #f0f0f0; }}
+            .site-icon {{ width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin-right: 15px; font-size: 1.2rem; }}
+            .robotics-prefix .site-icon {{ background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%); }}
+            .linux-prefix .site-icon {{ background: linear-gradient(135deg, #f39c12 0%, #d68910 100%); }}
+            .security-prefix .site-icon {{ background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); }}
+            .site-name {{ font-size: 1.8rem; font-weight: 600; color: #2c3e50; flex: 1; }}
+            .article-count {{ background: #e74c3c; color: white; padding: 8px 16px; border-radius: 20px; font-size: 0.9rem; font-weight: 600; }}
+            .articles-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 25px; }}
+            .article-card {{ background: #fff; border: 1px solid #e0e0e0; border-radius: 15px; padding: 25px; transition: all 0.3s ease; position: relative; overflow: hidden; }}
+            .article-card:hover {{ transform: translateY(-5px); box-shadow: 0 15px 40px rgba(0,0,0,0.1); border-color: #667eea; }}
+            .article-card::before {{ content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }}
+            .robotics-prefix .article-card::before {{ background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%); }}
+            .linux-prefix .article-card::before {{ background: linear-gradient(135deg, #f39c12 0%, #d68910 100%); }}
+            .security-prefix .article-card::before {{ background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); }}
+            .article-title {{ font-size: 1.3rem; font-weight: 600; color: #2c3e50; margin-bottom: 12px; line-height: 1.4; }}
+            .article-title a {{ color: inherit; text-decoration: none; transition: color 0.3s ease; }}
+            .article-title a:hover {{ color: #667eea; }}
+            .article-summary {{ color: #666; margin-bottom: 15px; font-size: 0.95rem; line-height: 1.5; }}
+            .article-meta {{ display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: #999; border-top: 1px solid #f0f0f0; padding-top: 15px; }}
+            .article-author {{ font-weight: 500; color: #667eea; }}
+            .article-date {{ opacity: 0.8; }}
+            .no-articles {{ text-align: center; color: #999; font-style: italic; padding: 40px; background: #f9f9f9; border-radius: 10px; }}
+            .footer {{ background: #f8f9fa; padding: 30px; text-align: center; color: #666; border-top: 1px solid #e0e0e0; }}
+            .footer p {{ margin-bottom: 10px; }}
+            .footer .timestamp {{ font-weight: 600; color: #333; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header {theme_class}">
+                <h1>{header_title}</h1>
+                <div class="subtitle">{subtitle}</div>
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-number">{total_articles}</span>
+                        <span class="stat-label">Total Articles</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">{total_sources}</span>
+                        <span class="stat-label">Sources</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">{generation_time}</span>
+                        <span class="stat-label">Generated</span>
+                    </div>
                 </div>
             </div>
+            
+            <div class="content">
+                {content}
+            </div>
+            
+            <div class="footer">
+                <p>Generated by Enhanced Tech News Scraper</p>
+                <p class="timestamp">Created on {timestamp}</p>
+                <p>Click on article titles to read the full stories</p>
+            </div>
         </div>
-        
-        <div class="content">
-            {content}
-        </div>
-        
-        <div class="footer">
-            <p>Generated by Enhanced Tech News Scraper</p>
-            <p class="timestamp">Created on {timestamp}</p>
-            <p>Click on article titles to read the full stories</p>
-        </div>
-    </div>
-</body>
-</html>"""
+    </body>
+    </html>"""
+
+    def ensure_output_directories(self):
+        """Create output directories if they don't exist"""
+        directories = ['html', 'json', 'csv']
+        for directory in directories:
+            os.makedirs(directory, exist_ok=True)
+
 
     def save_to_html(self, articles_dict: Dict[str, List[Article]], filename: str = None, 
-                     file_prefix: str = "tech_news", template_file: str = "news_template.html",
-                     site_type: str = "tech"):
+                    file_prefix: str = "tech_news", template_file: str = "news_template.html",
+                    site_type: str = "tech"):
         """Save articles to HTML file with styling using external template"""
+        # Ensure html directory exists
+        os.makedirs('html', exist_ok=True)
+        
         if filename is None:
-            filename = f"{file_prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+            filename = f"html/{file_prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+        else:
+            # If filename is provided without path, add html folder
+            if not filename.startswith('html/'):
+                filename = f"html/{filename}"
         
         total_articles = sum(len(articles) for articles in articles_dict.values())
         
@@ -596,7 +625,7 @@ class TechNewsScraper:
                     <h2 class="site-name">{site_display}</h2>
                     <div class="article-count">{len(articles)} articles</div>
                 </div>
-"""
+    """
             
             if articles:
                 content += '<div class="articles-grid">'
@@ -630,7 +659,7 @@ class TechNewsScraper:
                             <span class="article-date">{formatted_date}</span>
                         </div>
                     </div>
-"""
+    """
                 
                 content += '</div>'
             else:
@@ -686,6 +715,7 @@ class TechNewsScraper:
         
         logger.info(f"HTML report saved to {filename}")
         return filename
+
 
 def scrape_tech_news(max_articles_per_site: int = 5):
     """Scrape general tech news"""
